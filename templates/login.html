@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Masuk — Autopost</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script>
+  (function () {
+    var saved = localStorage.getItem("autopost-theme");
+    var theme = saved || (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+    document.documentElement.setAttribute("data-theme", theme);
+  })();
+</script>
+</head>
+<body>
+  <main class="login-wrap">
+    <div class="card login-card">
+      <div class="nav__brand login-brand">
+        <span class="nav__mark">&gt;_</span>
+        <span class="nav__name">autopost<span class="dim">.ctrl</span></span>
+      </div>
+      <p class="card__desc login-desc">Masuk ke akun untuk mengatur bot auto-post kamu sendiri.</p>
+
+      {% if error %}
+      <p class="login-error">{{ error }}</p>
+      {% endif %}
+
+      <form method="POST">
+        <label class="field">
+          <span class="field__label">Username</span>
+          <input type="text" name="username" autofocus autocomplete="username" />
+        </label>
+        <label class="field">
+          <span class="field__label">Password</span>
+          <input type="password" name="password" autocomplete="current-password" />
+        </label>
+        <div class="actions">
+          <button type="submit" class="btn-primary">Masuk</button>
+        </div>
+      </form>
+
+      <p class="login-switch">Belum punya akun? <a href="{{ url_for('register') }}">Daftar di sini</a></p>
+    </div>
+  </main>
+</body>
+</html>
