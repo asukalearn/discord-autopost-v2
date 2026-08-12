@@ -54,6 +54,7 @@ class BotRunner:
         def send_sync(token, channel_id):
             import requests
             url = f"https://discord.com/api/v10/channels/{channel_id}/messages"
+            # Token dipakai apa adanya � user bertanggung jawab menambahkan prefix yang benar
             headers = {'Authorization': token, 'Content-Type': 'application/json'}
             payload = {'content': message}
             try:
@@ -61,7 +62,6 @@ class BotRunner:
                 if resp.status_code == 200:
                     return True, None
                 else:
-                    # Ambil pesan error dari response Discord
                     try:
                         error_data = resp.json()
                         error_msg = error_data.get('message', 'Unknown error')
@@ -77,7 +77,7 @@ class BotRunner:
                 return
             color = 0x5EEAD4 if status_text == "Terkirim" else 0xF2545B
             embed = discord.Embed(
-                title=embed_config.get("title", "📢 Laporan Pengiriman"),
+                title=embed_config.get("title", " Laporan Pengiriman"),
                 description=embed_config.get("description", f"Channel: {channel_id}\nStatus: {status_text}"),
                 color=color,
                 timestamp=datetime.now()
@@ -106,7 +106,7 @@ class BotRunner:
                         self.log(f"{ch}: {status}")
                     else:
                         status = "Gagal"
-                        self.log(f"{ch}: {status} – {err}")
+                        self.log(f"{ch}: {status} � {err}")
 
                     # Kirim notifikasi webhook (jika diisi)
                     if webhook_url:
