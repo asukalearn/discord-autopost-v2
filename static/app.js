@@ -21,6 +21,7 @@ function collectConfig() {
     embed_color: $("embed_color").value,
     embed_footer: $("embed_footer").value,
     embed_thumbnail_url: $("embed_thumbnail_url").value,
+    is_bot_token: $("is_bot_token").checked,
   };
 }
 

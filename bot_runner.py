@@ -16,7 +16,8 @@ class BotRunner:
         self._stop_event = None
 
     def start(self, tokens: List[str], message: str, channels: List[Tuple[int, int]],
-              webhook_url: str = "", embed_config: Optional[Dict] = None):
+              webhook_url: str = "", embed_config: Optional[Dict] = None,
+              is_bot_token: bool = False):
         if self.running:
             return False, "Bot sudah berjalan."
         if not tokens or not message or not channels:
@@ -25,7 +26,7 @@ class BotRunner:
         self._stop_event = threading.Event()
         self.thread = threading.Thread(
             target=self._run,
-            args=(tokens, message, channels, webhook_url, embed_config or {}),
+            args=(tokens, message, channels, webhook_url, embed_config or {}, is_bot_token),
             daemon=True
         )
         self.thread.start()
@@ -37,7 +38,7 @@ class BotRunner:
         self._stop_event.set()
         return True, "Bot sedang dihentikan..."
 
-    def _run(self, tokens, message, channels, webhook_url, embed_config):
+    def _run(self, tokens, message, channels, webhook_url, embed_config, is_bot_token):
         self.loop = asyncio.new_event_loop()
         asyncio.set_event_loop(self.loop)
         self.running = True
@@ -54,7 +55,11 @@ class BotRunner:
         def send_sync(token, channel_id):
             import requests
             url = f"https://discord.com/api/v10/channels/{channel_id}/messages"
-            # Token dipakai apa adanya � user bertanggung jawab menambahkan prefix yang benar
+            # Jika token adalah bot resmi, tambahkan prefix "Bot "
+            if is_bot_token:
+                # Hanya tambahkan jika belum ada prefix
+                if not token.startswith('Bot ') and not token.startswith('Bearer '):
+                    token = f'Bot {token}'
             headers = {'Authorization': token, 'Content-Type': 'application/json'}
             payload = {'content': message}
             try:

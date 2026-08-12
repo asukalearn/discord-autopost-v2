@@ -60,6 +60,11 @@
         <textarea id="tokens" rows="4" placeholder="Masukkan token bot, satu per baris...">{{ config.tokens|join('\n') }}</textarea>
       </label>
 
+      <label class="field" style="display:flex; align-items:center; gap:10px; margin-top:-8px;">
+        <input type="checkbox" id="is_bot_token" {% if config.is_bot_token %}checked{% endif %}>
+        <span class="field__label" style="margin-bottom:0;">Token ini adalah Bot Resmi (centang jika iya)</span>
+      </label>
+
       <label class="field">
         <span class="field__label">Isi Pesan</span>
         <textarea id="message" rows="3" placeholder="Pesan yang akan diposting...">{{ config.message }}</textarea>

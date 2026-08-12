@@ -14,41 +14,41 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", secrets.token_hex(32))
 
 DEFAULT_CONFIG = {
-    "tokens": [],           # list of token strings
+    "tokens": [],
     "message": "",
-    "channels": [],         # list of [channel_id, delay_in_seconds]
+    "channels": [],
     "notify_webhook_url": "",
     "embed_title": "📢 Laporan Pengiriman",
     "embed_description": "Channel: {channel}\nStatus: {status}",
     "embed_color": "#5EEAD4",
     "embed_footer": "Autopost Bot",
     "embed_thumbnail_url": "",
+    "is_bot_token": False,
 }
 
-# per-user runner dan log
-runners: dict[str, BotRunner] = {}
-logs_by_user: dict[str, deque] = {}
+runners = {}
+logs_by_user = {}
 
-def get_logs(username: str) -> deque:
+def get_logs(username):
     if username not in logs_by_user:
         logs_by_user[username] = deque(maxlen=200)
     return logs_by_user[username]
 
-def get_runner(username: str) -> BotRunner:
+def get_runner(username):
     if username not in runners:
         runners[username] = BotRunner(lambda msg, u=username: get_logs(u).append(
             f"[{datetime.now().strftime('%H:%M:%S')}] {msg}"
         ))
     return runners[username]
 
-def load_config(username: str) -> dict:
+def load_config(username):
     path = userstore.config_path_for(username)
     if os.path.exists(path):
         with open(path, "r", encoding="utf-8") as f:
             return {**DEFAULT_CONFIG, **json.load(f)}
     return dict(DEFAULT_CONFIG)
 
-def save_config(username: str, cfg: dict):
+def save_config(username, cfg):
     with open(userstore.config_path_for(username), "w", encoding="utf-8") as f:
         json.dump(cfg, f, indent=2)
 
@@ -60,7 +60,6 @@ def login_required(view):
         return view(*args, **kwargs)
     return wrapped
 
-# -------- Routes (login, register, logout) sama seperti sebelumnya --------
 @app.route("/register", methods=["GET", "POST"])
 def register():
     error = None
@@ -100,7 +99,6 @@ def logout():
 def index():
     username = session["username"]
     cfg = load_config(username)
-    # sembunyikan token asli
     safe_cfg = dict(cfg)
     safe_cfg["tokens"] = ["*" * 8 if t else "" for t in cfg.get("tokens", [])]
     return render_template("index.html", config=safe_cfg, username=username)
@@ -111,11 +109,9 @@ def api_config():
     username = session["username"]
     data = request.get_json(force=True)
 
-    # Parse tokens (satu per baris)
     raw_tokens = data.get("tokens", "").strip()
     tokens = [t.strip() for t in raw_tokens.splitlines() if t.strip()]
 
-    # Parse channels (format: channel_id,delay)
     raw_channels = data.get("channels", "").strip()
     channels = []
     for line in raw_channels.splitlines():
@@ -134,7 +130,6 @@ def api_config():
         else:
             return jsonify({"ok": False, "message": f"Baris tidak valid: {line}"}), 400
 
-    # Ambil field lain
     message = data.get("message", "").strip()
     webhook_url = data.get("notify_webhook_url", "").strip()
     embed_title = data.get("embed_title", "").strip() or DEFAULT_CONFIG["embed_title"]
@@ -142,6 +137,7 @@ def api_config():
     embed_color = data.get("embed_color", "").strip() or DEFAULT_CONFIG["embed_color"]
     embed_footer = data.get("embed_footer", "").strip()
     embed_thumbnail = data.get("embed_thumbnail_url", "").strip()
+    is_bot_token = data.get("is_bot_token", False)
 
     cfg = {
         "tokens": tokens,
@@ -153,6 +149,7 @@ def api_config():
         "embed_color": embed_color,
         "embed_footer": embed_footer,
         "embed_thumbnail_url": embed_thumbnail,
+        "is_bot_token": is_bot_token,
     }
     save_config(username, cfg)
     get_logs(username).append(f"[{datetime.now().strftime('%H:%M:%S')}] Konfigurasi disimpan.")
@@ -183,6 +180,7 @@ def api_start():
         channels=cfg["channels"],
         webhook_url=cfg.get("notify_webhook_url", ""),
         embed_config=embed_config,
+        is_bot_token=cfg.get("is_bot_token", False),
     )
     get_logs(username).append(f"[{datetime.now().strftime('%H:%M:%S')}] {msg}")
     return jsonify({"ok": ok, "message": msg})
