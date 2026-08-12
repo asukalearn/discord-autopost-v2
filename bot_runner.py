@@ -5,7 +5,6 @@ import threading
 import time
 import random
 from datetime import datetime
-from typing import List, Tuple, Optional, Dict
 
 class BotRunner:
     def __init__(self, log_callback):
@@ -15,14 +14,11 @@ class BotRunner:
         self.loop = None
         self._stop_event = None
 
-    def start(self, tokens: List[str], message: str, channels: List[Tuple[int, int]],
-              webhook_url: str = "", embed_config: Optional[Dict] = None,
-              is_bot_token: bool = False):
+    def start(self, tokens, message, channels, webhook_url="", embed_config=None, is_bot_token=False):
         if self.running:
             return False, "Bot sudah berjalan."
         if not tokens or not message or not channels:
             return False, "Token, pesan, atau channel tidak lengkap."
-
         self._stop_event = threading.Event()
         self.thread = threading.Thread(
             target=self._run,
@@ -43,7 +39,6 @@ class BotRunner:
         asyncio.set_event_loop(self.loop)
         self.running = True
 
-        # Jadwal pengiriman awal (dengan jeda acak 1-5 detik)
         next_send = {}
         for ch, delay in channels:
             next_send[ch] = time.time() + random.uniform(1, 5)
@@ -51,13 +46,10 @@ class BotRunner:
         token_index = 0
         total_tokens = len(tokens)
 
-        # Fungsi untuk mengirim pesan secara sinkron (blocking)
         def send_sync(token, channel_id):
             import requests
             url = f"https://discord.com/api/v10/channels/{channel_id}/messages"
-            # Jika token adalah bot resmi, tambahkan prefix "Bot "
             if is_bot_token:
-                # Hanya tambahkan jika belum ada prefix
                 if not token.startswith('Bot ') and not token.startswith('Bearer '):
                     token = f'Bot {token}'
             headers = {'Authorization': token, 'Content-Type': 'application/json'}
@@ -76,7 +68,6 @@ class BotRunner:
             except Exception as e:
                 return False, str(e)
 
-        # Fungsi untuk mengirim notifikasi webhook (asinkron)
         async def send_webhook(channel_id, status_text):
             if not webhook_url:
                 return
@@ -98,33 +89,23 @@ class BotRunner:
             except Exception as e:
                 self.log(f"Gagal kirim webhook: {e}")
 
-        # Loop utama
         while not self._stop_event.is_set():
             now = time.time()
             for ch, delay in channels:
                 if now >= next_send.get(ch, 0):
                     token = tokens[token_index % total_tokens]
                     success, err = send_sync(token, ch)
-
                     if success:
                         status = "Terkirim"
                         self.log(f"{ch}: {status}")
                     else:
                         status = "Gagal"
                         self.log(f"{ch}: {status} � {err}")
-
-                    # Kirim notifikasi webhook (jika diisi)
                     if webhook_url:
-                        asyncio.run_coroutine_threadsafe(
-                            send_webhook(ch, status),
-                            self.loop
-                        )
-
-                    # Perbarui jadwal untuk channel ini
+                        asyncio.run_coroutine_threadsafe(send_webhook(ch, status), self.loop)
                     next_send[ch] = now + delay
                     token_index += 1
-
-            time.sleep(0.5)  # Cek setiap 0.5 detik
+            time.sleep(0.5)
 
         self.running = False
         self.log("Bot berhenti.")
